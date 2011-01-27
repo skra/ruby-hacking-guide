@@ -19,5 +19,6 @@
 型:type (in C)
 構造体:structure (in C)
 記号:symbol (in a parser input)
-
+文:statement
+式:expression
 
