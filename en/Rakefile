@@ -1,4 +1,4 @@
-require 'generate_html'
+load 'generate_html.rb'
 
 SRC= FileList['*.txt']
 HTML=SRC.ext( 'html')
@@ -24,3 +24,7 @@ PNG.zip( SVG).each{|png, svg|
     sh "#{INKSCAPE} -z --export-png=#{png} --export-dpi=#{DPI} --file=#{svg}"
   }
 }
+
+task :clean do
+  system("rm *.html")
+end
