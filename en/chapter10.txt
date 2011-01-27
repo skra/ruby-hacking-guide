@@ -11,24 +11,24 @@ h3. Construction of the Parser
 The parser is defined in the `yacc` source file `parse.y`, from which `yacc` generates `parse.c`.
 
 And one would expect that the parser is in the file with 
-the deceptive name `lex.c` but that's not the case.
+the deceptive name `lex.c` but that is not the case.
 It is a file which is created by the tool `gperf`, there 
-the the hash table of reserved words is defined. 
+the hash table of reserved words is defined. 
 Via an `#include` the file `lex.c` is used in `parse.c`.
 
 
 Although one would expect `lex.c` to contain the scanner this is not the case.
 This file is created by `gperf`, taking the file `keywords` as input, and
 defines the reserved word hashtable. This tool-generated `lex.c` is `#include`d
-in (the also tool-generated) `parse.c`. The details of this process is somewhat
+in (the also tool-generated) `parse.c`. The details of this process are somewhat
 difficult to explain at this time, so we shall return to this later.
 
-Figure 1 shows the parser construction process. For the benifit of those readers
+Figure 1 shows the parser construction process. For the benefit of those readers
 using Windows who may not be aware, the `mv` (move) command creates a new copy
 of a file and removes the original. `cc` is, of course, the C compiler and `cpp`
 the C pre-processor.
 
-!images/ch_parser_build.png(Parser construction process)!
+!images/ch_parser_build.jpg(Parser construction process)!
 
 h3. Disecting `parse.y`
 
@@ -58,12 +58,12 @@ user code section
     ID implementation
 </pre>
 
-As we mentioned before essiential are the definitions part and the 
+As we mentioned before, essiential are the definitions part and the 
 rules part. So we'll cover them first.
 
 The user definitions part contains a lot of support functions.
 They can rougly be divided into the six groups above.
-This table shows when we talk about which group.
+This table shows when we will talk about which group.
 
 |Category|Chapter|Section|
 |Parser interface|This chapter|Section 3 "The Scanner"|
@@ -81,8 +81,8 @@ The grammar of `ruby` conforms to a coding standard, it'll become easy
 to read once you know it.
 
 First symbol names: non-terminal symbols are all lower case,
-terminal symbols have one lower case letter as prefix plus rest 
-upper case. For keywords are prefixed with `k`, the other terminal
+terminal symbols have one lower case letter as prefix plus the rest in
+upper case. Keywords are prefixed with `k`, the other terminal
 symbols are prefixed with `t`.
 
 ▼ Symbol name examples
@@ -108,7 +108,7 @@ h3. Important symbols
 `parse.y` contains the grammar rules and the actions, 
 but for now I would like
 to concentrate on the grammar. 
-To extract the grammar the script use `sample/exyacc.rb` in the Ruby
+To extract the grammar we can use the script `sample/exyacc.rb` in the Ruby
 source or use `yacc -v` which creates a logfile `y.output`.
 But this logfile is pretty ugly.
 The output of `exyacc.rb` looks somewhat like this.
@@ -135,9 +135,9 @@ But which symbols might be important?
 We'll see by concentrating on their names.
 For instance the names
  `program`, `expr`, 
-`stmt`,`primary`, `arg` are extremely important, because
-the show the general classification of a programming language.
-Here a list of the syntax elements which should be regarded.
+`stmt`,`primary`, `arg` are extremely important, as
+they represent the general division of a programming language.
+Here is a list of the syntax elements which should be regarded.
 
 
 |Syntax element|Relevant symbol names|
@@ -170,27 +170,26 @@ etc. while a primary usually refers to a string literal or number. Some language
 do not contain all of these symbol types, however they generally contain some 
 kind of hierarchy of symbols such as `program`→`stmt`→`expr`→`primary`.
 
-It is often the case that symbol types lower in this heirarchy can be promoted 
-to higher levels and vice versa. For example, in C function calls are expressions 
-yet can be may also be statements.
+Often structures of lower rank can enter higher ranks. In C for example, a function call is an expression
+but can also stand alone. So it's also a statement while being an expression.
 
-Conversely, when surrounded in parenthesis expressions become primaries.
+Conversely, when surrounded by parentheses expressions become primaries.
+That's because the precedence of parentheses is higher then other lower level elements.
 
-Scoping rules differ considerably between programming languages. Consider 
-substitution. In C, the value of expressions can be used in substitutions 
-whereas in Pascal substitution occurs only at the statement level. Also,
-function and class definitions are typically statements however in languages 
-such as Lisp and Scheme, since everything is an expression, they too are 
-expressions. Ruby follows Lisp's design in this regard.
+The range of statements differs considerably between programming languages. 
+For instance assignment: In C one can use the value of the whole expression
+But in Pascal assignments are statements and one cannot do that.
+And also function and class definitions are usually statements.
+But in Lisp and Scheme everything is an expressions and there are no statements.
+Ruby is conceptually close to these.
 
 h3. Program structure
 
-Now let's turn our attention to the grammer rules of `ruby`. Firstly, 
-`yacc` will begin by examining the first rule defined in `parse.y`, and as 
-we can see from the following table, this is `program`. From here we can see 
-the ruby grammar unfold and the existance of the `program stmt expr primary` 
-hierarchy mentioned earlier. However there is an extra rule here for `arg`. 
-Let's now take a look at this.
+Let's move on to the Ruby's rules. First remember, that in `yacc`
+the lefthand side of the first rule represents the whole text body.
+(Note: Look this up, what is said here is that it accepts a text is of reduces to this lefthandside)
+Here it is `program`. When we follow this we see the classical four `program stmt expr primary`
+and in between is the rule `arg` added.
 
 ▼ `ruby` grammar (outline)
 <pre class="longlist">
@@ -235,11 +234,10 @@ primary         : literal
                 | kRETRY
 </pre>
 
-If you look at each of the final alternatives for each of the rules you should 
-be able to clearly make out a hierarchy of `program`→`stmt`→`expr`→`arg`→
-`primary`. 
+When we look at the final rules at each level we see a vertical relationship
+`program`→`stmt`→`expr`→`arg`→`primary`. 
 
-I'd like to focus on the rule for `primary`.
+Now I'd like look at `primary`.
 
 <pre class="emlist">
 primary         : literal
@@ -249,13 +247,13 @@ primary         : literal
 </pre>
 
 The name `tLPAREN_ARG` comes from `t` for terminal symbol, `L` for left and 
-`PAREN` for parentheses - it is the open parenthesis. Why this isn't `'('` 
-is covered in the next section "Context-dependent scanner". The purpose of this 
-rule is demote an `expr` to a `primary`, and is shown in Figure 2. This creates 
-a cycle which can the seen in Figure 2, and the arrow shows how this rule is 
+`PAREN` for parentheses - it is the opening parenthesis. Why it isn't `'('` 
+is covered in the next chapter "Stateful scanner". The purpose of this 
+rule is demote an `expr` to a `primary`, as shown in Figure 2. This creates 
+a cycle and the arrows show exactly how this rule is 
 reduced during parsing.
 
-!images/ch_parser_exprloop.png(`expr` demotion)!
+!images/ch_parser_exprloop.jpg(demotion of `expr`)!
 
 The next rule is also particularly interesting.
 
@@ -269,12 +267,12 @@ primary         : literal
 A `compstmt`, which represents code for an entire program, can be demoted to 
 a `primary` with this rule. The next figure illustrates this rule in action.
 
-!images/ch_parser_progloop.png(degeneration of `program`)!
+!images/ch_parser_progloop.jpg(demotion of `program`)!
 
-This means that for any syntax element in Ruby, if we surround it with 
-parenthesis it will become a `primary` and can be passed as an argument to a 
-function, be used as the right hand side of an expression etc. It helps to 
-see an example of this to grasp what this truly means.
+This means that any syntax element in Ruby if surrounded by 
+parentheses  will become a `primary` and can be passed as an argument to a 
+function, be used as the right hand side of an expression etc.
+This is an unbelievable fact. Let's really check it.
 
 <pre class="emlist">
 p((class C; end))
@@ -284,24 +282,21 @@ p((if true then nil else nil end))
 p((1 + 1 * 1 ** 1 - 1 / 1 ^ 1))
 </pre>
 
-If we invoke `ruby` with the `-c` option (syntax check), we get the following 
-output.
+`ruby` invoked with the `-c` checks the syntax of the input.
 
 <pre class="screen">
 % ruby -c primprog.rb
 Syntax OK
 </pre>
 
-Although it might look surprising at first, yes you really can do this in Ruby!
+That is hard to believe but it really passed. This looks like a mistake.
+To be precise, there are cases which will be rejected in the semantic analysis
+(Chaper 12 "Syntax tree construction"), so it doesn't pass perfectly.
+For example passing a `return` statement as an argument to a 
+function will result in an error. But at least at the scan level everything
+can be passed as an argument as long as it's in parentheses.
 
-The details of this are covered when we look at semantic analysis (in Chaper 12 
-"Syntax tree construction") however it is important to note there are exceptions 
-to this rule. For example passing a `return` statement as an argument to a 
-function will result in an error. For the most part, however, the "surrounding 
-anything in parenthesis means it can be passed as an argument to a function" 
-rule does hold.
-
-In the next section I will cover the most important grammar rules in some detail.
+Next we look one by one at the essential grammatical elements.
 
 h3. `program`
 
@@ -356,7 +351,7 @@ We use `ruby -c` again.
 Syntax OK
 </pre>
 
-Strange, it passed. Actually, consecutive newlines are
+Strangely it passed. Actually, consecutive newlines are
 discarded at scanner level. Only the first newline goes to the
 to the parser.
 
@@ -370,7 +365,7 @@ once for the whole program. From a purely grammatical point of view
 We can generalize this. There are two kinds of symbols, one kind 
 is necessary for the syntactic analysis , the other kind is 
 necessary for executing actions. The `none` at `stmts` is also necessary
-for an action. It's there to to return a `NULL` pointer (of type `NODE*`)
+for an action. It's there to return a `NULL` pointer (of type `NODE*`)
 for an empty list. (Note: Need to check this.)
 
 h3. `stmt`
@@ -396,12 +391,12 @@ stmt            : kALIAS fitem  fitem
 
 Kind of understandable. The first rules are for `alias` then one
 for `undef`. Then come "something_MOD" lines. These
-are modifiers. Then comes the back-end syntax.
+should be modifiers. It's the back-end syntax.
 
 `expr_value` and `primary_value` are provided for an action.
 For instance `expr_value` points out an `expr` which carries a value.
 An `expr` without a value are for instance `return` or `break` or an `if`
-statement which contains one of the former. What it means to carry a value 
+statement which contains one of these. What it means to carry a value 
 will be explained in detail in chapter 12 "Construction of the Syntax Tree".
 In the same way `primary_value` is a `primary` which carries a value. 
 
@@ -436,7 +431,7 @@ the table below.
 
 By the way, `aref` is Lisp Jargon. The corresponding `aset` also exists.
 It's an abreviation for array set. These abbreviations are used
-in various places of the Ruby source code.
+in various places in the Ruby source code.
 
 ▼ `stmt`(3)
 <pre class="longlist">
@@ -471,11 +466,11 @@ expr            : kRETURN call_args
 </pre>
 
 Expressions. There are grammaticarly only few expressions in Ruby. It's
-because everything which could go to `arg` did so. This is everything
+because everything which could go to `arg` did so. Hence this is everything
 which couldn't be moved to `arg`. What couldn't be moved are method calls
 with omitted parentheses. `call_args` are a stripped argument list.
 `command_call` is a method call without parentheses as mentioned above.
-If those were put into a smaller unit a collision would occur.
+If those were put into a smaller unit a conflict would occur.
 
 And there are two more lines.
 
@@ -484,7 +479,7 @@ expr kAND expr
 expr kOR expr
 </pre>
 
-`kAND` is `and` and `kOR` is `or`. These two function are control structures
+`kAND` is `and` and `kOR` is `or`. These two functions are control structures
 and hence couldn't be placed into a "smaller" syntax unit than `command_call`.
 And `command_call` is in `expr`. That's why they had to be placed 
 at least into `expr`. For instance there is this use case...
@@ -548,14 +543,11 @@ arg             : lhs '=' arg
 </pre>
 
 There are many rules but they don't vary much. For simple case distinctions
-`yacc` is extremely good to handle, but deeper rules and recursion
-influence the complexity. 
-xxx
+`yacc` is extremely good to handle, in fact there's a deepness to these rules
+and recursion makes them complex. (Note: check this)
 
-そうすると演算子のところで`arg OP arg`という形で再帰しているのが気になる
-のだが、これらの演算子には全て演算子優先順位が設定されているため
-実質上ただの列挙にすぎない。
-そこで`arg`の規則からそういう「ただの列挙」を併合して削ってしまおう。
+The form `arg OP arg` is prevalent. How does it behave under recursion.
+To avoid unnecessary repetitions we put the rules into six groups.
 
 <pre class="emlist">
 arg: lhs '=' arg              /* 1 */
@@ -566,11 +558,12 @@ arg: lhs '=' arg              /* 1 */
    | primary                  /* 6 */
 </pre>
 
-終端記号および終端記号のリストは区別する意味がないので全部まとめて`T_`の
-付く記号で表現した。`opeq`は`operator + equal`、`T_pre`は`'!'`や`'~'`の
-ような前置型演算子、`T_infix`は`'*'`や`'%'`と言った二項演算子を表す。
+There's no need to distinguish terminal symbols and lists of terminal
+symbols here. They are all subsumed under `T_`.  `T_opeq` is `operator + equal`,
+`T_pre` are the prefix operators like `'!'` and `'~'` and `T_infix`
+are the dyadic operators like `'*'` and `'%'`.
 
-That this structure doesn't collide the below is important.
+That this structure doesn't conflict the following is important.
 (But it's not everything.)
 
 
@@ -581,6 +574,7 @@ That this structure doesn't collide the below is important.
 * `T_opeq` and `T_infix` don't have a common element. (?)
 
 `arg`は`primary`を含むから共通項を持つと規則2と3が区別できない。
+(TODO: translation)
 
 * There's no `'?'` in `T_infix`
 
@@ -590,8 +584,7 @@ If it were the case there would be a shift/reduce conflict from rules 3 and 5.
 
 If it were so rules 4 and 5 would collide in a complex manner.
 
-結論としては全ての条件が成立しているので、この文法は衝突しない。
-当然と言えば当然だ。
+Now with all these conditions are the grammar doesn't conflict. Just wanted to say that.
 
 h3. `primary`
 
@@ -616,15 +609,10 @@ Literals. `literal` is the `Symbol` literal (`:sym`) or a numeric value.
                 | tFID
 </pre>
 
-Variables. `var_ref` are local and instance variables and others.
+The Variables group. `var_ref` are local and instance variables and others.
 `backref` are `$1 $2 $3...`. `tFID` is an identifier ending with `!` or
 `?`, like `include?` or `reject!`. It's because `tFID` cannot be
 a local variable. It will become a method call at parser level.
-変数類。`var_ref`はローカル変数やインスタンス変数など。
-`backref`は`$1 $2 $3`……。
-`tFID`は`!`や`?`が付いた識別子、例えば`include? reject!`など。
-`tFID`はローカル変数ではありえないので、
-それ単独で出てきたとしてもパーサレベルでメソッド呼び出しになる。
 
 ▼ `primary`(3)
 <pre class="longlist">
@@ -633,9 +621,8 @@ a local variable. It will become a method call at parser level.
                   kEND
 </pre>
 
-
-`bodystmt`が`rescue`や`ensure`も含んでいる。
-つまりこれは例外制御の`begin`である。
+`bodystmt` also includes `rescue` and `ensure`.
+So this is the begin of an exception handler. (Note: ?)
 
 ▼ `primary`(4)
 <pre class="longlist">
@@ -643,7 +630,7 @@ a local variable. It will become a method call at parser level.
                 | tLPAREN compstmt ')'
 </pre>
 
-既に説明した。構文縮退。
+I already explained this: syntactic degeneration.
 
 ▼ `primary`(5)
 <pre class="longlist">
@@ -651,22 +638,21 @@ a local variable. It will become a method call at parser level.
                 | tCOLON3 cname
 </pre>
 
-定数の参照。`tCONSTANT`は定数名(大文字で始まる識別子)。
+Reference of a constant. `tConstant` is a constant name ( an Identifier with an uppercase first letter)
 
-`tCOLON2`は`::`と`tCOLON3`は両方とも`::`なのだが、`tCOLON3`はトップレベルを
-意味する`::`だけを表している。つまり`::Const`という場合の`::`である。
-`Net::SMTP`のような`::`は`tCOLON2`だ。
+`tCOLON2` and `tCOLON3` are both `::`. `tCOLON3` represents only the `::` at toplevel.
+So in `::Const` the `::` is `tCOLON3` and in `Net::SMTP` the `::` is `tCOLON2`.
 
-同じトークンに違う記号が使われているのは括弧省略メソッドに対応する
-ためである。例えば次の二つを見分けるためだ。
+That here two different symbols are used for the same token is an adaption
+to methods with omitted parentheses. For instance two distinguish the two cases below.
 
 <pre class="emlist">
 p Net::HTTP    # p(Net::HTTP)
 p Net  ::HTTP  # p(Net(::HTTP))
 </pre>
 
-直前にスペースがあるか、あるいは開き括弧などの境界文字がある場合は
-`tCOLON3`でそれ以外では`tCOLON2`になる。
+When there is a space, an opening parenthesis or another delimiting character,
+`::` is interpreted as `tCOLON3`, otherwise as `tCOLON2`.
 
 ▼ `primary`(6)
 <pre class="longlist">
@@ -682,19 +668,9 @@ An index like call, like `arr[i]`.
                 | tLBRACE assoc_list '}'
 </pre>
 
-配列リテラルとハッシュリテラル。こちらの`tLBRACK`も`'['`を表して
-いるのだが、`'['`は`'['`でも前に空白のない`'['`のこと。この区別が必要
-なのもメソッド呼び出し括弧の省略の余波だ。
-
-それにしてもこの規則の終端記号は一文字しか違わないので非常にわかりずらい。
-以下の表に括弧の読みかたを書いておいたので対照しながら読んでほしい。
-
-▼ names of the different parentheses
-
-|symbol|name|
-|`( )`|parentheses|
-|`{ }`|braces|
-|`[ ]`|brackets|
+Array literal and hash literal. Here the `tLBRACK` also represents
+`[` and `[` represents `[` without a whitespace in front. This
+is also an an after-effect of method calls with omitted parentheses.
 
 ▼ `primary`(8)
 <pre class="longlist">
@@ -709,26 +685,24 @@ Syntax which resembles a method call.
 In order: `return`, `yield` and `defined?`.
 
 Why are there arguments for `yield` but none for `return`?
-`yield`には引数が付いているのに`return`に引数がないのはどうしてだろう。
-根本的な原因は、`yield`はそれ自体に返り値があるのに対し`return`には返り値が
-ないことである。ただし、ここで引数がないからといって値を渡せないわけでは、
-もちろんない。`expr`に次のような規則があった。
+The fundamental reason is that `yield` has a return value and `return`
+doesn't have one. But even though here are no arguments, we can of course still
+pass a value. There was the following rule in `expr`. 
 
 <pre class="emlist">
 kRETURN call_args
 </pre>
 
-`call_args`は剥き出しの引数リストなので`return 1`や`return nil`には対
-処できる。`return(1)`のようなものは`return (1)`として扱われる。という
-ことは、次のように引数が二個以上ある`return`には括弧が付けられないはず
-だ。
+As `call_args` is a stripped argument list this allows `return 1` or 
+`return nil`. `return(1)` is handled as `return (1)`. So this means
+that more than one argument for `return` can't be put in parentheses:
 
 <pre class="emlist">
 return(1, 2, 3)   # Will be interpreted as "return  (1,2,3)" -> Error
 </pre>
 
-このあたりは次章『状態付きスキャナ』を読んでから
-もう一度見てもらうとよくわかるだろう。
+When you return here after you read the next chapter 'The Stateful Scanner',
+you will probably understand this well.
 
 ▼ `primary`(9)
 <pre class="longlist">
@@ -737,12 +711,12 @@ return(1, 2, 3)   # Will be interpreted as "return  (1,2,3)" -> Error
                 | method_call brace_block
 </pre>
 
-method_call.
-メソッド呼び出し。`method_call`は引数あり(括弧もある)、`operation`は
-括弧も引数もなし。`brace_block`は`{`〜`}`か`do`〜`end`で、それがついて
-いるメソッドとはつまりイテレータだ。`brace`なのになぜ`do`〜`end`が入る
-のか……ということにはマリアナ海溝よりも深淵な理由があるのだが、これも
-やはり次章『状態付きスキャナ』を読んでもらうしかない。
+method_call. `method_call` has arguments and parentheses, `operation`
+has neither parentheses nor arguments. `brace_block` is a block
+either in parentheses or within `do`~`end`. These methods are hence 
+iterators. Why is it called `brace_block` even though there might be
+a `do`~`end`? This has an abysmal reason even deeper than the Mariana Trench.
+You eventually have to read the next chapter to understand.
 
 ▼ `primary`(10)
 <pre class="longlist">
@@ -755,21 +729,20 @@ method_call.
   | kFOR block_var kIN expr_value do compstmt kEND    # for
 </pre>
 
-基本制御構造。ちょっと意外なのは、こんなデカそうなものが`primary`という
-「小さい」ものの中にあることだ。`primary`は`arg`でもあるのでこんなこと
-もできるということになる。
+Basic control structures. This is a bit unusual, that there are such
+fat constructs inside a tiny `primary`. `primary` is also an `arg`
+so this is possible:
 
 <pre class="emlist">
 p(if true then 'ok' end)   # "ok" is shown.
 </pre>
 
-One of Ruby' features is that almost all syntax elements are expressions.
-Rubyの特徴の一つに「ほとんどの構文要素が式」というのがあった。
-`if`や`while`が`primary`にあることでそれが具体的に表現されている。
+One of Ruby's features is that almost all syntax elements are expressions.
+That `if` and `while` are `primary` is a practical example of this.
 
 But why is it alright that there are such big elements?
-That's only because Ruby's syntax starts with the terminal symbol A
-and ends with the terminal symbol B. We will think about this point 
+That's only because Ruby's syntax starts with a terminal symbol A
+and ends with a terminal symbol B. We will think about this point 
 in the next paragraph.
 
 ▼ `primary`(11)
@@ -794,13 +767,13 @@ a terminal symbol B. There's no problem how many we might add.
                 | kRETRY
 </pre>
 
-Various jumps. Grammaticarly not very interesting.
+Various jumps. Not very interesting from a grammar point of view.
 
-h3. Colliding lists
+h3. Conflicting lists
 
 We asked before if its alright that `if` is a primary. To bring a
 strict proof is quite complicated, but we can give a relatively simple
-heuristic explanation. Let's do a small simulation with the small 
+heuristic explanation. Let's do a simulation with the small 
 ruleset below.
 
 <pre class="emlist">
@@ -815,11 +788,13 @@ item      : element
           | o
 </pre>
 
-`element`がこれから問題にしようとしている要素だ。例えば`if`について考える
-なら`if`だ。`element`は終端記号`A`で始まり`B`で終わるリストである。
-`if`で言うなら`if`で始まり`end`で終わる。内容物の`o`はメソッドや
-変数参照やリテラルである。リストの要素には、その`o`か、または`element`が
-ネストする。
+`element` will be the problematic element here. For instance if we think
+about `if` it's `if`. `element` is a list which  
+begins with the terminal symbol `A` and
+ends with the terminal symbol `B`. In the case of `if` it begins with
+an `if` and ends with `end`. The content which are here `o` would
+be methods, variable references and literals. The list elements are 
+`o`s or again nested `element`s.
 
 Now put the following string into a parser which works according to the above grammar.
 
@@ -827,19 +802,19 @@ Now put the following string into a parser which works according to the above gr
 A  A  o  o  o  B  o  A  o  A  o  o  o  B  o  B  B
 </pre>
 
-ここまでネストしまくっていると人間にはインデントなどの助けがないとちょっ
-とわかりにくい。だが次のように考えればわりと簡単である。いつか必ず
-`A`と`B`が`o`だけを狭んで現れるので、それを消して`o`に変える。それを繰り
-返すだけでいい。結論は図4のようになる。
+If it is nested like this and not indented it's a bit hard to read for
+humans. But it becomes quite easy if you think like this. There are 
+for sure some `A` and `B` which embrace only `o`. Replace these by `o`.
+Now just repeat this. Finally it looks like Fig.4.
 
-!images/ch_parser_ablist.png(Aで始まりBで終わるリストのリストをパース)!
+!images/ch_parser_ablist.jpg(Parsing lists which start with A and end with B)!
 
-しかしもし終端の`B`がなかったりすると……
+But now assume the `B` in the end isn't there...
 
 <pre class="emlist">
 %token A o
 %%
-element   : A item_list    /* Bを消してみた */
+element   : A item_list    /* B was deleted */
 
 item_list :
           | item_list item
@@ -849,37 +824,41 @@ item      : element
 </pre>
 
 This produced 2 shift/reduce conflicts when fed to `yacc`. So this
-grammar is ambiguous. If we remove the 'A's from the string above
+grammar is ambiguous. If we remove the `B`s from the string above
 we get:
 
 <pre class="emlist">
 A  A  o  o  o  o  A  o  A  o  o  o  o
 </pre>
 
-It's difficult to understand. But there was the principle that 
+This looks confusing. But there was the principle that 
 in a shift/reduce conflict shift should prevail. Let's give 
 shift the precedence. The result is shown in Fig.5.
 
-!images/ch_parser_alist.png(Parsing a list of lists starting with an A)!
+!images/ch_parser_alist.jpg(Parsing a list of lists starting with an A)!
 
-とりあえずパースできた。しかしこれでは入力と意図が全く違うし、どうやっ
-ても途中でリストを切ることができなくなってしまった。
+It passed but input and intent are completely different, the list
+can't be cut in the middle anymore.
 
-実はRubyの括弧省略メソッドはこれと似たような状態にある。わかりにくいが、
-メソッド名と第一引数が合わせて`A`だ。なぜならその二つの間にだけカンマが
-ないので、新しいリストの始まりだと認識できるからである。
+Actually, Ruby's omission of parentheses is similar to this.
+It's difficult to understand but the method name and the first argument 
+correspond and are
+It's because between these two there is no 
+comma. It can be realized that there starts a new list.
 
-他に「現実的な」HTMLもこのパターンを含む。例えば``や``が省略され
-たときはこうなる。そういうわけで`yacc`は普通のHTMLにはまるで通用しない。
+Besides, actual HTML also contains this pattern. For instance when 
+an &lt;/p&gt; or an &lt;/li&gt;
+are omitted.
+That's why `yacc` absolutely won't let ordinary HTML pass.
 
 h2. The Scanner
 
 h3. Parser overview
 
-Before we go over to the scanner let's give an overview for the parser.
+Before we go over to the scanner let's give an overview of the parser.
 Please look at Fig.6.
 
-!images/ch_parser_interf.png(Parser Interface(Call graph))!
+!images/ch_parser_interf.jpg(Parser Interface(Call graph))!
 
 There are three parser interfaces: `rb_compile_cstr()`, `rb_compile_string()`, and 
 `rb_compile_file()`. They read and compile a program 
@@ -891,12 +870,6 @@ This `yyparse()` is the center of the parser, hence it's good to get a grasp of 
 In other words: The functions before `yyparse()` are there for preparation,
 the functions after `yyparse()` are used by `yyparse` for odds and ends.
 
-#これらの関数は直接間接に`yycompile()`を呼び出し、最終的に`yacc`が生成した
-#`yyparse()`に完全に制御を移す。パーサの中心とはこの`yyparse()`に他ならない
-#のだから、`yyparse()`を中心に把握してやるとよい。即ち`yyparse()`に移る前の
-#関数は全て前準備であり、`yyparse()`より後の関数は`yyparse()`にこき使われ
-#る雑用関数にすぎない。
-
 The rest of the functions in `parse.y` are helper functions called by `yylex()`.
 We will classify them closely next.
 
@@ -904,18 +877,15 @@ First of all, on the lowest level there is the input buffer. `ruby`
 can take source input from Ruby `IO` objects, C or Ruby strings. The
 input buffer conceals this and let's it seem like an ordinary bytestream.
 
-#まずスキャナの最も低レベルな部分には入力バッファがある。`ruby`はソースプ
-#ログラムをRubyの`IO`オブジェクトか文字列のどちらからでも入力できるように
-#なっており、入力バッファはそれを隠蔽して単一のバイトストリームに見せか
-#ける。
-
 On the next level there is the token buffer. It takes one
 byte after another from the input buffer and stores them
 until a token is completed.
 
 Accordingly we can sketch the body of `yylex` as in Fig.7.
 
-!images/ch_parser_scanner.png(the body of the scanner)!
+!images/ch_parser_scanner.jpg(the body of the scanner)!
+
+(入力バッファ:input buffer, バイト列:byte string, トーケンバッファ:token buffer, 記号列:symbol string)
 
 h3. The Input Buffer
 
@@ -937,7 +907,7 @@ These are the variables which the input buffer uses.
 The buffer's tip, current position and end. Somehow this 
 buffer looks like an ordinary string buffer. (Fig.8)
 
-!images/ch_parser_ibuffer.png(the input buffer)!
+!images/ch_parser_ibuffer.jpg(the input buffer)!
 
 h4. `nextc()`
 
@@ -1095,6 +1065,7 @@ and the variables it uses.
 も言える。`st_table`にも似たような手法があった。
 
 h4. `pushback()`
+
 When you understand the physical structure of the buffer and `nextc()`
 the rest is easy. `pushback()` unwrites one character like the 
 C function `ungetc()`.
@@ -1150,7 +1121,7 @@ First a look at the data structure.
 クスらしい)、`toksiz`がバッファ長だろう。こちらも入力バッファと同じく
 単純な構造だ。絵にすると図9のようになる。
 
-!images/ch_parser_tbuffer.png(トークンバッファ)!
+!images/ch_parser_tbuffer.jpg(トークンバッファ)!
 
 引き続きインターフェイスに行って、新しいトークンを開始する`newtok()`を
 読もう。
@@ -1333,7 +1304,8 @@ case '!':
   トークンは「'!'」である。
 </pre>
 
-この`case`節は短かいが、スキャナの重要な法則が示されている。それは
+(Note: Added one backtick.)
+`この`case`節は短かいが、スキャナの重要な法則が示されている。それは
 「最長一致の原則」である。`"!="`という二文字は「`!`と`=`」「`!=`」の
 二通りに解釈できるが、この場合は「`!=`」を選ばなければならない。
 プログラム言語のスキャナでは最長一致が基本である。
@@ -1430,10 +1402,10 @@ h4. `':'`
 
 h4. Identifiers
 
-ここまでは記号ばかりなのでせいぜい一文字二文字だったが、今度は
-もう少し長いものも見てみることにする。識別子のスキャンパターンだ。
+Up to now we just looked at patterns which had one or two characters,
+but this time we look at a bit longer scan pattern: identifiers.
 
-まず`yylex`の全体像はこうなっていた。
+First in `yylex` the complete object is as follows.
 
 <pre class="emlist">
 yylex(...)
@@ -1446,24 +1418,24 @@ yylex(...)
       default:
     }
 
-    識別子のスキャンコード
+    Scan code for identifiers
 }
 </pre>
 
-次のコードは巨大`switch`の末尾のところからの引用である。
-やや長いのでコメントを入れつつ示そう。
+The next code is taken out of the end of a huge `switch`.
+Because it's so long comments are added on the way.
 
 ▼ `yylex`-識別子
 <pre class="longlist">
-4081        case '@':                 /* インスタンス変数かクラス変数 */
+4081        case '@':                 /* instance variable or class variable */
 4082          c = nextc();
 4083          newtok();
 4084          tokadd('@');
-4085          if (c == '@') {         /* @@、つまりクラス変数 */
+4085          if (c == '@') {         /* @@、class variable */
 4086              tokadd('@');
 4087              c = nextc();
 4088          }
-4089          if (ISDIGIT(c)) {       /* @1など */
+4089          if (ISDIGIT(c)) {       /* @1 and such */
 4090              if (tokidx == 1) {
 4091    rb_compile_error("`@%c' is not a valid instance variable name", c);
 4092              }
@@ -1471,7 +1443,7 @@ yylex(...)
 4094    rb_compile_error("`@@%c' is not a valid class variable name", c);
 4095              }
 4096          }
-4097          if (!is_identchar(c)) { /* @の次に変な文字がある */
+4097          if (!is_identchar(c)) { /* weird character after @ */
 4098              pushback(c);
 4099              return '@';
 4100          }
@@ -1487,9 +1459,9 @@ yylex(...)
 4110          break;
 4111      }
 4112
-4113      while (is_identchar(c)) {   /* 識別子に使える文字のあいだ…… */
+4113      while (is_identchar(c)) {   /* Between admissible characters */
 4114          tokadd(c);
-4115          if (ismbchar(c)) {      /* マルチバイト文字の先頭バイトならば */
+4115          if (ismbchar(c)) {      /* Beginning byte of a multibyte character */
 4116              int i, len = mbclen(c)-1;
 4117
 4118              for (i = 0; i < len; i++) {
@@ -1501,7 +1473,7 @@ yylex(...)
 4124      }
 4125      if ((c == '!' || c == '?') &&
               is_identchar(tok()[0]) &&
-              !peek('=')) {      /* name!またはname?の末尾一文字 */
+              !peek('=')) {      /* last character as in name! or name?*/
 4126          tokadd(c);
 4127      }
 4128      else {
@@ -1512,17 +1484,16 @@ yylex(...)
 (parse.y)
 </pre>
 
-最後に`!`/`?`を追加しているところの条件に注目してほしい。
-この部分は次のような解釈をするためである。
+Please note the case at the end with `!` or `?` at the end.
+This part is there to interpret something like the following.
 
 <pre class="emlist">
-obj.m=1       # obj.m  =   1       (obj.m= ... ではない)
-obj.m!=1      # obj.m  !=  1       (obj.m! ... ではない)
+obj.m=1       # obj.m  =   1       (it's not "obj.m= ..." )
+obj.m!=1      # obj.m  !=  1       (it's not "obj.m! ...")
 </pre>
 
-つまり最長一致「ではない」。
-最長一致はあくまで原則であって規則ではないので、
-ときには破っても構わないのだ。
+So it's not the longest match. The longest match is a principle, not a rule.
+It is broken once in a while.
 
 h4. Keywords
 
@@ -1904,7 +1875,7 @@ Probably because differing from other elements the units are lines.
 ここまでで入力バッファは図10のようになっているはずだ。
 入力バッファは行単位だったことを思い出そう。
 
-!images/ch_parser_lexparams.png(`"printf(<<EOS, n)"`のスキャン)!
+!images/ch_parser_lexparams.jpg(`"printf(<<EOS, n)"`のスキャン)!
 
 `heredoc_identifier()`でやっていることは以下の通り。
 (A)`len`は現在行のうち読み込んだバイト数だ。
@@ -1994,6 +1965,6 @@ here_document(NODE *here)
 つまり開始記号の直後から何事もなかったかのようにスキャンしつづけられる
 というわけだ(図11)。
 
-!images/ch_parser_heredoc.png(ヒアドキュメントのスキャン分担図)!
+!images/ch_parser_heredoc.jpg(ヒアドキュメントのスキャン分担図)!
 
 当然パースエラーだ。
